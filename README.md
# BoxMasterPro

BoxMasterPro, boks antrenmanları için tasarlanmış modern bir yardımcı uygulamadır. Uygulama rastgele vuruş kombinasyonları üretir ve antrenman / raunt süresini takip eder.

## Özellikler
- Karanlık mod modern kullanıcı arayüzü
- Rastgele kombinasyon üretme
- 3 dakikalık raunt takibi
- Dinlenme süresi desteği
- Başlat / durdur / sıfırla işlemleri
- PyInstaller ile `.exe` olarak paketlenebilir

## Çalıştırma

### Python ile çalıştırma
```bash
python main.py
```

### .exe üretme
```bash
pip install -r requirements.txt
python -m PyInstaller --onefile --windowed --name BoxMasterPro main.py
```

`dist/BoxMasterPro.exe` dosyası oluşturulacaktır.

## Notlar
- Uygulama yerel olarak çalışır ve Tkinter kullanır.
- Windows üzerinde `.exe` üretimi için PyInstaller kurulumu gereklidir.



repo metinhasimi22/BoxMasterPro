@@ -1,0 +1,314 @@
+import random
+import tkinter as tk
+from tkinter import messagebox
+
+
+class BoxMasterApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("BoxMaster Pro")
+        self.root.geometry("430x680")
+        self.root.minsize(430, 680)
+        self.root.configure(bg="#0f172a")
+
+        self.punches = [
+            "Jab (1)",
+            "Cross (2)",
+            "Sol Kroşe (3)",
+            "Aparkat (4)",
+            "Body Shot",
+            "Hook (5)",
+            "Uppercut (6)",
+        ]
+
+        self.total_rounds = 3
+        self.current_round = 1
+        self.work_duration = 180
+        self.rest_duration = 30
+        self.remaining_seconds = self.work_duration
+        self.is_work_phase = True
+        self.timer_running = False
+        self.after_id = None
+
+        self.build_ui()
+        self.update_timer_label()
+        self.set_combo("Hazır Ol!")
+        self.refresh_round_info()
+
+    def build_ui(self):
+        self.title_frame = tk.Frame(self.root, bg="#0f172a")
+        self.title_frame.pack(fill="x", pady=(18, 10))
+
+        self.title_label = tk.Label(
+            self.title_frame,
+            text="🥊 BOXMASTER PRO",
+            font=("Segoe UI", 24, "bold"),
+            fg="#f97316",
+            bg="#0f172a",
+        )
+        self.title_label.pack()
+
+        self.subtitle_label = tk.Label(
+            self.title_frame,
+            text="Profesyonel boks antrenmanı asistanı",
+            font=("Segoe UI", 10),
+            fg="#94a3b8",
+            bg="#0f172a",
+        )
+        self.subtitle_label.pack(pady=(2, 0))
+
+        self.card_combo = tk.Frame(
+            self.root,
+            bg="#111827",
+            bd=0,
+            highlightthickness=1,
+            highlightbackground="#1f2937",
+        )
+        self.card_combo.pack(fill="x", padx=22, pady=(10, 12))
+
+        self.combo_header = tk.Label(
+            self.card_combo,
+            text="Rastgele Kombinasyon",
+            font=("Segoe UI", 12, "bold"),
+            fg="#e2e8f0",
+            bg="#111827",
+            anchor="w",
+        )
+        self.combo_header.pack(anchor="w", padx=18, pady=(18, 8))
+
+        self.combo_var = tk.StringVar(value="Hazır Ol!")
+        self.combo_display = tk.Label(
+            self.card_combo,
+            textvariable=self.combo_var,
+            font=("Segoe UI", 18, "bold"),
+            fg="#34d399",
+            bg="#111827",
+            wraplength=330,
+            justify="center",
+            pady=26,
+        )
+        self.combo_display.pack(fill="x", padx=18, pady=(0, 18))
+
+        self.combo_button = self.create_button(
+            self.card_combo,
+            text="Yeni Kombinasyon Üret",
+            command=self.generate_combination,
+            bg="#f97316",
+            fg="white",
+            hover_bg="#fb923c",
+        )
+        self.combo_button.pack(fill="x", padx=18, pady=(0, 18))
+
+        self.card_timer = tk.Frame(
+            self.root,
+            bg="#111827",
+            bd=0,
+            highlightthickness=1,
+            highlightbackground="#1f2937",
+        )
+        self.card_timer.pack(fill="x", padx=22, pady=(0, 18))
+
+        self.round_var = tk.StringVar(value="Raunt 1/3")
+        self.round_label = tk.Label(
+            self.card_timer,
+            textvariable=self.round_var,
+            font=("Segoe UI", 11, "bold"),
+            fg="#cbd5e1",
+            bg="#111827",
+        )
+        self.round_label.pack(anchor="w", padx=18, pady=(18, 4))
+
+        self.timer_header = tk.Label(
+            self.card_timer,
+            text="Antrenman / Raunt Süresi",
+            font=("Segoe UI", 12, "bold"),
+            fg="#e2e8f0",
+            bg="#111827",
+            anchor="w",
+        )
+        self.timer_header.pack(anchor="w", padx=18, pady=(8, 0))
+
+        self.timer_var = tk.StringVar(value="03:00")
+        self.timer_display = tk.Label(
+            self.card_timer,
+            textvariable=self.timer_var,
+            font=("Segoe UI", 38, "bold"),
+            fg="#fbbf24",
+            bg="#111827",
+        )
+        self.timer_display.pack(pady=(4, 10))
+
+        self.status_var = tk.StringVar(value="Hazır")
+        self.status_label = tk.Label(
+            self.card_timer,
+            textvariable=self.status_var,
+            font=("Segoe UI", 10, "bold"),
+            fg="#a7f3d0",
+            bg="#111827",
+        )
+        self.status_label.pack(pady=(0, 14))
+
+        self.button_frame = tk.Frame(self.card_timer, bg="#111827")
+        self.button_frame.pack(pady=(0, 18))
+
+        self.start_button = self.create_button(
+            self.button_frame,
+            text="Başlat",
+            command=self.start_timer,
+            bg="#22c55e",
+            fg="white",
+            hover_bg="#4ade80",
+            width=12,
+        )
+        self.start_button.grid(row=0, column=0, padx=8, pady=8)
+
+        self.pause_button = self.create_button(
+            self.button_frame,
+            text="Durdur",
+            command=self.pause_timer,
+            bg="#f59e0b",
+            fg="white",
+            hover_bg="#fbbf24",
+            width=12,
+        )
+        self.pause_button.grid(row=0, column=1, padx=8, pady=8)
+
+        self.reset_button = self.create_button(
+            self.button_frame,
+            text="Sıfırla",
+            command=self.reset_timer,
+            bg="#3b82f6",
+            fg="white",
+            hover_bg="#60a5fa",
+            width=26,
+        )
+        self.reset_button.grid(row=1, column=0, columnspan=2, padx=8, pady=(4, 10), sticky="ew")
+
+    def create_button(self, parent, text, command, bg, fg, hover_bg, width=None):
+        btn = tk.Button(
+            parent,
+            text=text,
+            command=command,
+            bg=bg,
+            fg=fg,
+            activebackground=hover_bg,
+            activeforeground=fg,
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 11, "bold"),
+            cursor="hand2",
+            width=width,
+        )
+
+        btn.bind("<Enter>", lambda e, b=btn, color=hover_bg: b.config(bg=color))
+        btn.bind("<Leave>", lambda e, b=btn, color=bg: b.config(bg=color))
+        return btn
+
+    def set_combo(self, text):
+        self.combo_var.set(text)
+
+    def refresh_round_info(self):
+        self.round_var.set(f"Raunt {self.current_round}/{self.total_rounds}")
+
+    def update_timer_label(self):
+        minutes, seconds = divmod(self.remaining_seconds, 60)
+        self.timer_var.set(f"{minutes:02d}:{seconds:02d}")
+
+    def generate_combination(self):
+        combo = random.sample(self.punches, 3)
+        self.set_combo(" - ".join(combo))
+
+    def start_timer(self):
+        if self.timer_running:
+            return
+
+        self.timer_running = True
+        self.status_var.set("Çalışıyor")
+        self.status_label.config(fg="#a7f3d0")
+        self.countdown_loop()
+
+    def pause_timer(self):
+        if not self.timer_running:
+            return
+
+        self.timer_running = False
+        self.status_var.set("Durduruldu")
+        self.status_label.config(fg="#fbbf24")
+
+        if self.after_id is not None:
+            self.root.after_cancel(self.after_id)
+            self.after_id = None
+
+    def reset_timer(self):
+        self.pause_timer()
+        self.current_round = 1
+        self.is_work_phase = True
+        self.remaining_seconds = self.work_duration
+        self.update_timer_label()
+        self.refresh_round_info()
+        self.status_var.set("Sıfırlandı")
+        self.status_label.config(fg="#93c5fd")
+        self.timer_display.config(fg="#fbbf24")
+
+    def countdown_loop(self):
+        if not self.timer_running:
+            return
+
+        if self.remaining_seconds > 0:
+            self.remaining_seconds -= 1
+            self.update_timer_label()
+
+            if self.remaining_seconds <= 10:
+                self.timer_display.config(fg="#f87171")
+            else:
+                self.timer_display.config(fg="#fbbf24")
+
+            self.after_id = self.root.after(1000, self.countdown_loop)
+            return
+
+        self.after_id = None
+        self.handle_phase_transition()
+
+    def handle_phase_transition(self):
+        if self.is_work_phase:
+            self.current_round += 1
+            if self.current_round > self.total_rounds:
+                self.timer_running = False
+                self.status_var.set("Antrenman Bitti")
+                self.status_label.config(fg="#fca5a5")
+                self.timer_display.config(fg="#f87171")
+                self.remaining_seconds = self.work_duration
+                self.update_timer_label()
+                self.current_round = self.total_rounds
+                self.refresh_round_info()
+                messagebox.showinfo("Antrenman Tamamlandı", "Tebrikler! Antrenman bitti.")
+                self.status_var.set("Hazır")
+                self.status_label.config(fg="#a7f3d0")
+                return
+
+            self.is_work_phase = False
+            self.remaining_seconds = self.rest_duration
+            self.status_var.set("Dinlenme")
+            self.status_label.config(fg="#fbbf24")
+            self.refresh_round_info()
+            self.update_timer_label()
+            self.timer_running = True
+            self.after_id = self.root.after(1000, self.countdown_loop)
+            return
+
+        self.is_work_phase = True
+        self.current_round = min(self.current_round, self.total_rounds)
+        self.remaining_seconds = self.work_duration
+        self.status_var.set(f"Raunt {self.current_round} başlıyor")
+        self.status_label.config(fg="#a7f3d0")
+        self.refresh_round_info()
+        self.update_timer_label()
+        self.timer_running = True
+        self.after_id = self.root.after(1000, self.countdown_loop)
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = BoxMasterApp(root)
+    root.mainloop()
+
