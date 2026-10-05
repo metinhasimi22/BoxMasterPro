@@ -1,7 +1,16 @@
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
 build/
 dist/
 *.spec
-assets/
+*.exe
+assets/boxmaster_icon.ico
+assets/boxmaster_icon.png
+assets/boxmaster_splash.png
 installer/Output/
+releases/
+.env
+.vscode/
+.idea/
